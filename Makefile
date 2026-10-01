@@ -1,22 +1,30 @@
-CC   = cc
-WARN = -Wall -Wextra -Wpedantic -std=c11
-SRC  = $(wildcard src/*.c)
+CC    = cc
+WARN  = -std=c11 -Wall -Wextra -Wpedantic -Werror
+SRC   = $(wildcard src/*.c)
+ASAN  = -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined -DCHECK_INVARIANTS
 
 all: order_book
 
-order_book: $(SRC)
-	$(CC) $(WARN) -O2 -Iinclude $(SRC) -o order_book
+order_book: $(SRC:src/%.c=build/rel/%.o)
+	$(CC) $(WARN) -O2 $^ -o $@
 
-debug: $(SRC)
-	$(CC) $(WARN) -O0 -g -Iinclude $(SRC) -o order_book_debug
+build/rel/%.o: src/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(WARN) -O2 -Iinclude -MMD -MP -c $< -o $@
 
-asan: $(SRC)
-	$(CC) $(WARN) -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Iinclude $(SRC) -o order_book_asan
+asan: order_book_asan
+order_book_asan: $(SRC:src/%.c=build/asan/%.o)
+	$(CC) $(WARN) $(ASAN) $^ -o $@
+
+build/asan/%.o: src/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(WARN) $(ASAN) -Iinclude -MMD -MP -c $< -o $@
 
 test: asan
 	@echo "no tests yet"
 
 clean:
-	rm -f order_book order_book_debug order_book_asan
+	rm -rf build order_book order_book_asan
 
-.PHONY: all debug asan test clean
+-include $(wildcard build/*/*.d)
+.PHONY: all asan test clean
