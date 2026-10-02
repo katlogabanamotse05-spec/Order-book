@@ -7,7 +7,7 @@ typedef struct Price_Level{
     uint64_t total_qty;
     uint32_t n_orders;
     Order *head, *tail;
-    struct Price_level *next, *prev;
+    struct Price_Level *next, *prev;
 } Price_Level;
 
 Price_Level *level_create(int64_t price);
